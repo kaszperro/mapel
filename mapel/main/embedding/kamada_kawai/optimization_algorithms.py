@@ -25,16 +25,16 @@ def optimize_bb(func, grad_func, args, x0, max_iter, init_step_size, stop_energy
     energy_history = collections.deque(maxlen=percentage_lookup_history)
 
     for i in range(max_iter):
-        if i%100 == 0:
+        if len(energy_history) == percentage_lookup_history:
+            percentage = min(energy_history) / max(energy_history)
+            if 1 - percentage < min_improvement_percentage:
+                return x.copy()
+
+        if i % 100 == 0:
             print(f'{i} iterations')
 
         current_energy = func(x, *args)
         if current_energy < min_energy:
-            if len(energy_history) == percentage_lookup_history:
-                percentage = current_energy / min_energy
-                if 1 - percentage < min_improvement_percentage:
-                    return x.copy()
-
             min_energy = current_energy
             min_energy_snap = x.copy()
             min_energy_iter = i
@@ -54,13 +54,20 @@ def optimize_bb(func, grad_func, args, x0, max_iter, init_step_size, stop_energy
             if is_2d:
                 denominator = denominator.diagonal()
             step_size = np.linalg.norm(s, axis=0) ** 2 / denominator
+            # step_size = np.divide(
+            #     np.linalg.norm(s, axis=0) ** 2,
+            #     denominator,
+            #     out=np.zeros_like(denominator) + init_step_size,
+            #     where=~np.isclose(denominator, np.zeros_like(denominator))
+            # )
+
         else:
             step_size = init_step_size
 
         prev_grad = g
         prev_x = x
         x = x - step_size * g
-        energy_history.add(min_energy)
+        energy_history.append(min_energy)
 
     return min_energy_snap
 

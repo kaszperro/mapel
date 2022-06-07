@@ -145,13 +145,20 @@ class Experiment:
     def embed(self, algorithm: str = 'spring', num_iterations: int = 1000, radius: float = np.infty,
               dim: int = 2, num_neighbors: int = None, method: str = 'standard',
               zero_distance: float = 0.1, factor: float = 1., saveas: str = None,
-              init_pos: dict = None, fixed=True) -> None:
+              init_pos: dict = None, fixed=True, random_permute_distances=False, algorithm_options=None) -> None:
 
         attraction_factor = 1
         if algorithm == 'spring':
             attraction_factor = 2
 
         num_elections = len(self.distances)
+
+        if random_permute_distances:
+            random_keys_order = np.random.permutation(list(self.distances.keys()))
+            self.distances = {
+                key: self.distances[key]
+                for key in random_keys_order
+            }
 
         x = np.zeros((num_elections, num_elections))
 
@@ -217,12 +224,12 @@ class Experiment:
                                             max_iter=num_iterations,
                                             method=method).fit_transform(x)
         elif algorithm.lower() in {'kamada-kawai', 'kamada', 'kawai'}:
-            my_pos = KamadaKawai().embed(
+            my_pos = KamadaKawai(**algorithm_options).embed(
                 distances=x, initial_positions=initial_positions,
-                fix_initial_positions=fixed
+                fix_initial_positions=fixed,
             )
         elif algorithm.lower() in {'simulated-annealing'}:
-            my_pos = SimulatedAnnealing().embed(
+            my_pos = SimulatedAnnealing(**algorithm_options).embed(
                 distances=x,
                 initial_positions=initial_positions,
                 fix_initial_positions=fixed
@@ -253,6 +260,9 @@ class Experiment:
                 file_name = f'{saveas}.csv'
             path = os.path.join(os.getcwd(), "experiments", self.experiment_id,
                                 "coordinates", file_name)
+            path_root = os.path.dirname(path)
+            if not os.path.exists(path_root):
+                os.makedirs(path_root)
             with open(path, 'w', newline='') as csvfile:
 
                 writer = csv.writer(csvfile, delimiter=';')

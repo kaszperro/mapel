@@ -3,7 +3,8 @@ from typing import List
 
 import numpy as np
 
-from mapel.main.features.common import extract_selected_coordinates
+from mapel.main.features.common import extract_selected_coordinates, \
+    extract_calculated_distances
 from mapel.main.objects.Experiment import Experiment
 
 
@@ -12,9 +13,13 @@ def calculate_stability(experiment: Experiment, election_ids: List[str] = None, 
         election_ids = list(experiment.distances.keys())
 
     coordinates = []
+    distances = []
 
     for coordinate_dict in experiment.coordinates_lists.values():
         coordinates.append(extract_selected_coordinates(coordinate_dict, election_ids))
+        distances.append(extract_calculated_distances(coordinates[-1]))
+
+    max_distance = np.max(distances)
 
     if rotate_to_match:
         for i in range(1, len(coordinates)):
@@ -24,7 +29,7 @@ def calculate_stability(experiment: Experiment, election_ids: List[str] = None, 
 
     for i in range(len(coordinates)):
         for j in range(i + 1, len(coordinates)):
-            coordinates_differences.append(np.linalg.norm(coordinates[i] - coordinates[j], axis=1))
+            coordinates_differences.append(np.linalg.norm(coordinates[i] - coordinates[j], axis=1) / max_distance)
 
     coordinates_differences = np.array(coordinates_differences)
     differences_mean = np.mean(coordinates_differences, axis=0)
@@ -72,7 +77,7 @@ def rotate_coordinates_to_match(coordinates_to_rotate, coordinates_to_match):
     # special reflection case
     if np.linalg.det(R) < 0:
         print("det(R) < R, reflection detected!, correcting for it ...")
-        Vt[2, :] *= -1
+        Vt[1, :] *= -1
         R = Vt.T @ U.T
 
     t = -R @ centroid_a + centroid_b
