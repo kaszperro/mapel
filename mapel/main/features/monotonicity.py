@@ -16,7 +16,7 @@ def _remove_diagonal(A):
 
 
 def calculate_monotonicity(experiment: Experiment, election_ids: List[str] = None, max_distance_percentage=1.0,
-                           error_tolerance=0.1):
+                           error_tolerance=0.1, normalize=True):
     if election_ids is None:
         election_ids = list(experiment.distances.keys())
 
@@ -24,6 +24,10 @@ def calculate_monotonicity(experiment: Experiment, election_ids: List[str] = Non
 
     desired_distances = extract_selected_distances(experiment, election_ids)
     calculated_distances = np.linalg.norm(coordinates[:, np.newaxis] - coordinates[np.newaxis, :], axis=2)
+
+    if normalize:
+        calculated_distances /= np.max(calculated_distances)
+        desired_distances /= np.max(desired_distances)
 
     max_distance = np.max(desired_distances)
 

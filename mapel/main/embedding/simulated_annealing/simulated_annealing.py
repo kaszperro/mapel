@@ -9,7 +9,8 @@ from mapel.main.embedding.simulated_annealing.simulated_annealing_energy import 
 
 
 class SimulatedAnnealing:
-    def __init__(self, initial_temperature=100000,
+    def __init__(self,
+                 initial_temperature=100000,
                  cooling_temp_factor=0.75,
                  num_stages=10,
                  number_of_trials_for_temp=30,
@@ -49,7 +50,8 @@ class SimulatedAnnealing:
             number_of_trials_for_temp=self.number_of_trials_for_temp,
             frozen_node_indexes=fixed_positions_indexes,
             cooling_temp_factor=self.cooling_temp_factor,
-            cooling_radius_factor=self.cooling_radius_factor
+            cooling_radius_factor=self.cooling_radius_factor,
+            radius=self.initial_radius
         )
 
         return ann.run()
@@ -103,8 +105,6 @@ class SimRunner:
             for j in range(self.number_of_trials_for_temp):
                 accept = (new_energy < energy or random() < np.exp((energy - new_energy) / self.temperature))
                 if accept:
-                    print(
-                        f"Accepting new energy: {new_energy} temp: {self.temperature}. Temerature Iteration: {j}/{self.number_of_trials_for_temp}. Global Iteration: {i}/{self.num_stages}")
                     self.positions = new_positions
                     energy = new_energy
 

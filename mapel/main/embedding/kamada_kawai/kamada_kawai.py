@@ -45,19 +45,22 @@ class KamadaKawai:
         positions = initial_place_points(distances, initial_positions, self.initial_positions_algorithm)
 
         start_time = time.time()
-        positions = optim_method_to_fun[self.optim_method](distances, k, positions, fixed_positions_indexes)
+        positions = optim_method_to_fun[self.optim_method](distances, k, positions, fixed_positions_indexes,
+                                                           epsilon=self.epsilon)
 
         k = _calc_k_with_special_value(distances, 1, fixed_positions_indexes)
         print("MIDDLE ENERGY:", get_total_energy(positions, k, distances), "TIME:", time.time() - start_time)
 
-        positions = optim_method_to_fun[self.optim_method](distances, k, positions, fixed_positions_indexes)
+        positions = optim_method_to_fun[self.optim_method](distances, k, positions, fixed_positions_indexes,
+                                                           epsilon=self.epsilon)
 
         print("FINAL ENERGY:", get_total_energy(positions, k, distances), "TIME:", time.time() - start_time)
 
         if self.max_neighbour_distance_percentage is not None:
             k = _respect_only_close_neighbours_k(k, distances, self.max_neighbour_distance_percentage)
 
-            positions = optim_method_to_fun[self.optim_method](distances, k, positions, fixed_positions_indexes)
+            positions = optim_method_to_fun[self.optim_method](distances, k, positions, fixed_positions_indexes,
+                                                               epsilon=self.epsilon)
             print("Last adjustments:", get_total_energy(positions, k, distances), "TIME:", time.time() - start_time)
 
         return positions
@@ -69,23 +72,23 @@ def _get_max_derivative(k, distances, positions, fixed_positions_indexes=None):
     for i in range(0, num_vertices):
         if fixed_positions_indexes is not None and i in fixed_positions_indexes:
             continue
-        pos, k, l, x, y = _get_pos_k_l_x_y_for_i(positions, k, distances, i)
+        pos, my_k, l, x, y = _get_pos_k_l_x_y_for_i(positions, k, distances, i)
 
-        my_energy = _get_delta_energy(pos, k, l, x, y), i
+        my_energy = _get_delta_energy(pos, my_k, l, x, y), i
         if my_energy > max_derivative:
             max_derivative = my_energy
 
     return max_derivative
 
 
-def _get_positions_kk(distances, k, l, positions, fixed_positions_indexes, epsilon=0.00001):
+def _get_positions_kk(distances, k, positions, fixed_positions_indexes, epsilon=0.00001, **kwargs):
     max_derivative = _get_max_derivative(k, distances, positions, fixed_positions_indexes)
     print(max_derivative)
     while max_derivative[0] > epsilon:
         max_der, i = max_derivative
         total_energy = get_total_energy(positions, k, distances)
         print(f'Energy: {total_energy}, max der: {max_der}')
-        positions[i], succ = _optimize_newton(positions, k, l, i, epsilon)
+        positions[i], succ = _optimize_newton(positions, k, distances, i, epsilon)
         if not succ:
             positions[i] += np.random.uniform(-10, 10, size=(2,))
         max_derivative = _get_max_derivative(k, distances, positions, fixed_positions_indexes)
@@ -93,7 +96,7 @@ def _get_positions_kk(distances, k, l, positions, fixed_positions_indexes, epsil
     return positions
 
 
-def _get_positions_bb(distances, k, positions, fixed_positions_indexes):
+def _get_positions_bb(distances, k, positions, fixed_positions_indexes, **kwargs):
     pos_copy = np.copy(positions)
     new_positions = optimize_bb(
         get_total_energy,
@@ -110,7 +113,7 @@ def _get_positions_bb(distances, k, positions, fixed_positions_indexes):
     return new_positions
 
 
-def _get_positions_adam(distances, k, positions, fixed_positions_indexes):
+def _get_positions_adam(distances, k, positions, fixed_positions_indexes, **kwargs):
     pos_copy = np.copy(positions)
     new_positions = adam(
         get_total_energy,

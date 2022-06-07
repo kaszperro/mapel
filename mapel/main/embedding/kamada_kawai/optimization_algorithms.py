@@ -54,6 +54,7 @@ def optimize_bb(func, grad_func, args, x0, max_iter, init_step_size, stop_energy
             if is_2d:
                 denominator = denominator.diagonal()
             step_size = np.linalg.norm(s, axis=0) ** 2 / denominator
+            np.nan_to_num(step_size, False, init_step_size[0], init_step_size[0], init_step_size[0])
             # step_size = np.divide(
             #     np.linalg.norm(s, axis=0) ** 2,
             #     denominator,
